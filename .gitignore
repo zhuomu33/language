@@ -1,0 +1,12 @@
+node_modules/
+ios/
+build/
+Payload/
+*.ipa
+*.zip
+*.tmp.*
+.env
+.env.*
+CodexVoice/
+preview-*.png
+language-ui-references-temp-*.png

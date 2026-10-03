@@ -1,0 +1,20 @@
+{
+  "name": "daily-page-ios",
+  "private": true,
+  "version": "0.1.0",
+  "description": "每日一页语言学习 App",
+  "scripts": {
+    "build:web": "node ./build-web.mjs",
+    "build:web:ci": "node ./build-web.mjs",
+    "cap:sync": "npm run build:web && cap sync ios",
+    "cap:open": "cap open ios"
+  },
+  "dependencies": {
+    "@capacitor/core": "^7.4.0",
+    "@capacitor/ios": "^7.4.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^7.4.0",
+    "typescript": "~5.9.3"
+  }
+}
