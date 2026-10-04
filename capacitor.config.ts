@@ -5,7 +5,8 @@ const config: CapacitorConfig = {
   appName: '每日一页',
   webDir: 'release',
   ios: {
-    contentInset: 'automatic'
+    contentInset: 'never',
+    scrollEnabled: false
   }
 };
 
