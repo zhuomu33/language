@@ -34,4 +34,3 @@ export function snapshot(storage) {
   const data = Object.fromEntries(DATA_KEYS.map((key, i) => [key, storage.getItem(key) ?? defaults[i]]));
   return {format:'daily-page-backup', version:1, updatedAt:new Date().toISOString(), data:validateData(data)};
 }
-
