@@ -9,10 +9,10 @@ await check('Lockfile matches package',async()=>{
  assert.deepEqual(lock.packages[''].devDependencies,pkg.devDependencies);
 });
 await check('Bundled assets and entry points',async()=>{
- for(const file of ['index.html','ui-preview.html','course-progress.js','manifest.webmanifest','sw.js','apple-touch-icon.png','icon-192.png','icon-512.png','assets/forest.jpg','assets/mountains.jpg','assets/lucide.min.js'])assert.ok((await stat(`release/${file}`)).size>0,file);
+ for(const file of ['index.html','ui-preview.html','app.js','learning-tools.js','learning-tools.css','native-storage.bundle.js','course-progress.js','manifest.webmanifest','sw.js','apple-touch-icon.png','icon-192.png','icon-512.png','assets/forest.jpg','assets/mountains.jpg','assets/lucide.min.js'])assert.ok((await stat(`release/${file}`)).size>0,file);
 });
 await check('No external image or script hosts',async()=>{
- const html=await readFile('release/index.html','utf8');assert.ok(!html.includes('https://unpkg.com'));assert.ok(!html.includes('https://images.unsplash.com'));
+ const html=await readFile('release/index.html','utf8');assert.ok(!html.includes('https://unpkg.com'));assert.ok(!(await readFile('release/app.js','utf8')).includes('https://images.unsplash.com'));
 });
 await check('Manifest icons exist',async()=>{
  const manifest=JSON.parse(await readFile('release/manifest.webmanifest','utf8'));

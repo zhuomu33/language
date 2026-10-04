@@ -27,12 +27,13 @@ const courseProgress = (()=>{
   try {
     const state=JSON.parse(localStorage.getItem('daily-page-progress')||'{}');
     for(const lang of ['de','en']) {
-      if(!state[lang] || ![0,1].includes(state[lang].index) || typeof state[lang].done!=='boolean') state[lang]={index:0,done:false};
+      if(!state[lang]) state[lang]={index:0,done:false};
+      state[lang].completed=Math.max(state[lang].completed||0,state[lang].index+Number(state[lang].done));
     }
     return state;
   } catch { return {de:{index:0,done:false},en:{index:0,done:false}}; }
 })();
-function saveProgress(){localStorage.setItem('daily-page-progress',JSON.stringify(courseProgress))}
+function saveProgress(){localStorage.setItem('daily-page-progress',JSON.stringify(courseProgress));DailyStore.save().catch(()=>{})}
 function syncCourse(){
   for(const lang of ['de','en']) {
     const second=courseProgress[lang].index===1,data=nextLessons[lang];
@@ -58,7 +59,7 @@ document.addEventListener('click',e=>{
   if(!action)return;
   const state=courseProgress[language];
   if(action==='finish') {
-    state.done=true;saveProgress();render();
+    if(!state.done){state.completed++;state.done=true;state.lastCompleted=new Date().toISOString();}saveProgress();render();
     document.querySelector('.course-controls')?.scrollIntoView({block:'center'});
   } else if(action==='next'&&state.done) {
     if(state.index>=1){openSheet('后续文章',`<p>已读完当前两篇示例文章。</p><p class="muted" style="margin-top:12px">后续文章尚未接入生成服务，当前学习进度已保存。</p>`);return;}

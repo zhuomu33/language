@@ -9,5 +9,6 @@ Payload/
 .env
 .env.*
 CodexVoice/
+/native-storage.bundle.js
 preview-*.png
 language-ui-references-temp-*.png
