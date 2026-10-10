@@ -18,4 +18,4 @@ services:
       - key: CHAT_BASE_URL
         value: https://api.deepseek.com
       - key: CHAT_MODEL
-        value: deepseek-chat
+        value: deepseek-flash
