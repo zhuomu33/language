@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: daily-page
+    runtime: node
+    plan: free
+    buildCommand: npm ci && npm run build:web && npm test
+    startCommand: node server.mjs
+    healthCheckPath: /
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: HOST
+        value: 0.0.0.0
+      - key: APP_TOKEN
+        generateValue: true
+      - key: CHAT_API_KEY
+        sync: false
+      - key: CHAT_BASE_URL
+        value: https://api.deepseek.com
+      - key: CHAT_MODEL
+        value: deepseek-chat

@@ -3,6 +3,19 @@ let cloudConfig = {};
 try { cloudConfig = JSON.parse(localStorage.getItem('daily-page-cloud') || '{}'); } catch {}
 let currentChat = null;
 const chats = new Map();
+window.generatedPractice=()=>{
+  const questions=currentCourse(language)?.questions;if(!questions)return false;
+  openSheet('阅读理解',questions.map((q,i)=>`<section><h2>${i+1}. ${escapeHtml(q.question)}</h2>${q.choices.map((c,j)=>`<button class="question-choice" data-quiz="${i}" data-choice="${j}">${escapeHtml(c)}</button>`).join('')}<p data-quiz-feedback="${i}" role="status"></p></section>`).join(''));
+  return true;
+};
+document.addEventListener('click',e=>{
+  const b=e.target.closest('[data-quiz]');if(!b)return;
+  const q=currentCourse(language).questions[Number(b.dataset.quiz)];
+  document.querySelector(`[data-quiz-feedback="${b.dataset.quiz}"]`).textContent=(Number(b.dataset.choice)===q.answer?'回答正确。':'再读一读相关句子。')+q.explanation;
+});
+for(const name of ['gesturestart','gesturechange','gestureend'])document.addEventListener(name,e=>e.preventDefault(),{passive:false});
+document.addEventListener('touchmove',e=>{if(e.touches.length>1)e.preventDefault()},{passive:false});
+document.addEventListener('dblclick',e=>{if(!e.target.closest('input,textarea'))e.preventDefault()},{passive:false});
 
 function applyFont() {
   const size = Math.min(34, Math.max(18, Number(settingValues.fontSize) || 22));
@@ -44,7 +57,7 @@ function learningRender() {
       <div class="setting"><div>德语至 A2 的计划学习量<p>每篇约 15 分钟，可按实际调整</p></div><input data-plan="de" type="number" min="7" max="730" value="${Number(settingValues['plan-de'])||180}" aria-label="德语计划篇数"></div>
       <div class="setting"><div>英语至 C1 的计划学习量<p>个人计划，不是达级承诺</p></div><input data-plan="en" type="number" min="7" max="730" value="${Number(settingValues['plan-en'])||320}" aria-label="英语计划篇数"></div>
       <div class="setting"><label for="speech-mode">朗读来源</label><select id="speech-mode"><option value="system">手机系统语音</option><option value="cloud">云端自然语音</option></select></div>
-      <div class="setting"><div>AI 服务<p>文章追问与自然语音 · 阿里云百炼</p></div><div class="cloud-fields"><label>服务地址<input id="cloud-url" type="url" placeholder="https://你的服务域名" value="${escapeHtml(cloudConfig.url||'')}" autocapitalize="off" spellcheck="false"></label><label>应用连接口令<input id="cloud-token" type="password" autocomplete="off" value="${escapeHtml(cloudConfig.token||'')}"></label><p class="muted">使用你部署的服务地址和连接口令，百炼 API Key 仅配置在服务端。</p><button class="secondary" id="save-cloud">${icon('plug')}保存并检查连接</button><p id="cloud-status" role="status"></p></div></div>
+      <div class="setting"><div>AI 服务<p>文章生成与追问 · 云端服务</p></div><div class="cloud-fields"><label>服务地址<input id="cloud-url" type="url" placeholder="https://你的服务域名" value="${escapeHtml(cloudConfig.url||'')}" autocapitalize="off" spellcheck="false"></label><label>应用连接口令<input id="cloud-token" type="password" autocomplete="off" value="${escapeHtml(cloudConfig.token||'')}"></label><p class="muted">使用你部署的服务地址和连接口令，AI API Key 仅配置在服务端。</p><button class="secondary" id="save-cloud">${icon('plug')}保存并检查连接</button><p id="cloud-status" role="status"></p></div></div>
       <div class="setting"><div>学习记录备份<p class="storage-state" data-storage-status></p><p>覆盖更新保留进度；卸载或换机前请导出。尚未启用账号云同步。</p></div><div class="storage-actions"><button class="secondary" id="export-backup">${icon('download')}导出备份</button><button class="secondary" id="import-backup">${icon('upload')}恢复备份</button><input type="file" id="backup-file" accept=".json,application/json" hidden></div></div>`);
     $('#speech-mode').value=settingValues.speechMode||'system';
     updateStorageStatus();
@@ -186,7 +199,7 @@ document.addEventListener('click',async e=>{
       baseUrl();localStorage.setItem('daily-page-cloud',JSON.stringify(cloudConfig));b.disabled=true;
       $('#cloud-status').textContent='正在检查连接…';
       const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),15000);
-      try{const r=await api('/api/status',{},controller.signal);const s=await r.json();$('#cloud-status').textContent=s.ready?'连接成功，可以追问和朗读':'服务已连接，等待配置百炼 API Key'}finally{clearTimeout(timeout)}
+      try{const r=await api('/api/status',{},controller.signal);const s=await r.json();$('#cloud-status').textContent=s.ready?(s.speechReady===false?'连接成功，可以生成文章和追问；语音使用系统朗读':'连接成功，可以追问和朗读'):'服务已连接，等待配置 AI API Key'}finally{clearTimeout(timeout)}
     }catch(error){if($('#cloud-status'))$('#cloud-status').textContent=error.message}finally{b.disabled=false}
   }
   if(b.hasAttribute('data-download-audio')){

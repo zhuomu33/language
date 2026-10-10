@@ -1,7 +1,7 @@
 {
   "name": "daily-page-ios",
   "private": true,
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "每日一页语言学习 App",
   "scripts": {
     "start": "node server.mjs",

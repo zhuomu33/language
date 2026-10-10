@@ -1277,6 +1277,41 @@
     web: () => Promise.resolve().then(() => (init_web3(), web_exports3)).then((m) => new m.ShareWeb())
   });
 
+  // lesson-schema.mjs
+  function validateLesson(value) {
+    const str = (v, max = 1500) => {
+      if (typeof v !== "string" || !v.trim() || v.length > max || /[<>"&]/.test(v)) throw new Error("\u6587\u7AE0\u683C\u5F0F\u4E0D\u6B63\u786E\uFF0C\u8BF7\u91CD\u65B0\u751F\u6210");
+      return v;
+    };
+    const list = (v, min, max, fn) => {
+      if (!Array.isArray(v) || v.length < min || v.length > max) throw new Error("\u6587\u7AE0\u5185\u5BB9\u4E0D\u5B8C\u6574");
+      return v.map(fn);
+    };
+    if (!value || typeof value !== "object") throw new Error("\u6587\u7AE0\u4E3A\u7A7A");
+    const sentences = list(value.sentences, 6, 24, (v) => str(v, 600)), n = sentences.length, meanings = {};
+    if (!value.meanings || typeof value.meanings !== "object" || Array.isArray(value.meanings) || Object.keys(value.meanings).length > 500) throw new Error("\u7F3A\u5C11\u8BCD\u8BED\u89E3\u91CA");
+    for (const [key, v] of Object.entries(value.meanings)) {
+      str(key, 80);
+      if (["__proto__", "constructor", "prototype"].includes(key)) continue;
+      meanings[key] = str(v, 600);
+    }
+    return {
+      title: str(value.title, 180),
+      subtitle: str(value.subtitle, 180),
+      category: "AI \u539F\u521B\u6545\u4E8B",
+      sentences,
+      translations: list(value.translations, n, n, (v) => str(v)),
+      grammar: list(value.grammar, n, n, (v) => str(v)),
+      examples: list(value.examples, n, n, (v) => list(v, 2, 2, (s2) => str(s2, 600))),
+      meanings,
+      marked: {},
+      questions: list(value.questions, 3, 6, (q) => ({ question: str(q.question, 400), choices: list(q.choices, 3, 4, (v) => str(v, 400)), answer: (() => {
+        if (!Number.isInteger(q.answer) || q.answer < 0 || q.answer >= q.choices.length) throw new Error("\u7B54\u6848\u65E0\u6548");
+        return q.answer;
+      })(), explanation: str(q.explanation, 700) }))
+    };
+  }
+
   // learning-state.mjs
   var DATA_KEYS = ["daily-page-vocab", "daily-page-settings", "daily-page-progress"];
   var STATE_KEY = "daily-page-state-v1";
@@ -1296,6 +1331,7 @@
       const item = progress[lang];
       if (!item || !Number.isSafeInteger(item.index) || item.index < 0 || typeof item.done !== "boolean") throw new Error("\u8BFE\u7A0B\u8FDB\u5EA6\u635F\u574F");
       if (item.completed !== void 0 && (!Number.isSafeInteger(item.completed) || item.completed < 0)) throw new Error("\u5B8C\u6210\u8BB0\u5F55\u635F\u574F");
+      if (item.lesson) validateLesson(item.lesson);
     }
     return result;
   }
@@ -1313,6 +1349,7 @@
   }
 
   // native-storage.js
+  window.validateLesson = validateLesson;
   var native = Capacitor.isNativePlatform();
   var queue = Promise.resolve();
   var warning = "";

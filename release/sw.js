@@ -1,4 +1,4 @@
-const CACHE = 'daily-page-v7';
+const CACHE = 'daily-page-v8';
 const SHELL = ['./', './ui-preview.html', './manifest.webmanifest', './course-progress.js', './icon-192.png', './icon-512.png', './apple-touch-icon.png', './assets/lucide.min.js', './assets/mountains.jpg', './assets/forest.jpg'];
 SHELL.push('./app.js', './learning-tools.js', './learning-tools.css', './native-storage.bundle.js');
 self.addEventListener('install', event => event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(SHELL)).then(() => self.skipWaiting())));

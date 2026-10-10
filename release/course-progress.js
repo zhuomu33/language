@@ -34,9 +34,10 @@ const courseProgress = (()=>{
   } catch { return {de:{index:0,done:false},en:{index:0,done:false}}; }
 })();
 function saveProgress(){localStorage.setItem('daily-page-progress',JSON.stringify(courseProgress));DailyStore.save().catch(()=>{})}
+function currentCourse(lang){return courseProgress[lang].index>=2?courseProgress[lang].lesson:courseProgress[lang].index===1?nextLessons[lang]:null}
 function syncCourse(){
   for(const lang of ['de','en']) {
-    const second=courseProgress[lang].index===1,data=nextLessons[lang];
+    const data=currentCourse(lang),second=!!data;
     lessons[lang]=structuredClone(firstLessons[lang]);
     if(second) Object.assign(lessons[lang],{title:data.title,subtitle:data.subtitle,category:data.category,sentences:data.sentences,marked:data.marked,word:{}});
     const notes=second?data.translations.map((translation,i)=>lang==='de'?[translation,'',data.grammar[i],...data.examples[i]]:[translation,data.grammar[i],...data.examples[i]]):initialNotes[lang];
@@ -53,8 +54,15 @@ function courseControls(){
   section.className='course-controls';
   section.innerHTML=`<small class="muted">第 ${state.index+1} 次学习 · ${state.done?'阅读已完成':'正在阅读'}</small><div class="row" style="flex-wrap:wrap;margin-top:12px">${state.done?`<button class="primary" data-course="next">继续学习下一篇 ${icon('arrow-right')}</button><button class="secondary" data-nav="home">今天到这里</button>`:`<button class="primary" data-course="finish">完成本篇阅读 ${icon('check')}</button>`}</div>`;
   footer.after(section);
+  if(state.done){
+    const label=document.createElement('label');label.textContent='这篇读起来：';
+    const select=document.createElement('select');select.setAttribute('aria-label','阅读难度反馈');
+    for(const [value,title] of [['hard','吃力，多复习'],['steady','刚刚好'],['easy','轻松，稍微提高']])select.add(new Option(title,value));
+    select.value=state.comfort||'steady';select.onchange=()=>{state.comfort=select.value;saveProgress()};label.append(select);section.prepend(label);
+  }
 }
-document.addEventListener('click',e=>{
+let generatingLesson=false;
+document.addEventListener('click',async e=>{
   const action=e.target.closest('[data-course]')?.dataset.course;
   if(!action)return;
   const state=courseProgress[language];
@@ -62,7 +70,24 @@ document.addEventListener('click',e=>{
     if(!state.done){state.completed++;state.done=true;state.lastCompleted=new Date().toISOString();}saveProgress();render();
     document.querySelector('.course-controls')?.scrollIntoView({block:'center'});
   } else if(action==='next'&&state.done) {
-    if(state.index>=1){openSheet('后续文章',`<p>已读完当前两篇示例文章。</p><p class="muted" style="margin-top:12px">后续文章尚未接入生成服务，当前学习进度已保存。</p>`);return;}
+    if(generatingLesson)return;
+    if(state.index>=1){
+      const lang=language,button=e.target.closest('[data-course]');
+      generatingLesson=true;button.disabled=true;button.textContent='正在准备下一篇…';
+      const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),90000);
+      try{
+        const words=[...saved.values()].filter(v=>v.language===lang).slice(-20).map(v=>v.word);
+        const response=await api('/api/lesson',{language:lang,index:state.index+1,previousTitle:lessons[lang].title,words,duration:Number(settingValues.duration)||15,comfort:state.comfort||'steady'},controller.signal);
+        const lesson=validateLesson((await response.json()).lesson);
+        // Store content and cursor together. Failure leaves the completed lesson intact.
+        const next={...state,index:state.index+1,done:false,lesson};
+        localStorage.setItem('daily-page-progress',JSON.stringify({...courseProgress,[lang]:next}));
+        courseProgress[lang]=next;await DailyStore.save();syncCourse();
+        if(language===lang&&page==='reader'){sentenceIndex=0;go('reader')}else toast('下一篇已保存，随时可以继续');
+      }catch(error){toast(error.name==='AbortError'?'生成超时，进度未推进，请重试':error.message)}
+      finally{clearTimeout(timeout);generatingLesson=false;if(button.isConnected){button.disabled=false;button.textContent='继续学习下一篇'}}
+      return;
+    }
     state.index++;state.done=false;saveProgress();syncCourse();sentenceIndex=0;go('reader');
   }
 });

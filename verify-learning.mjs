@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import {writeFile} from 'node:fs/promises';
 import {createServer} from './server.mjs';
 import {snapshot,parseBackup,STATE_KEY} from './learning-state.mjs';
+import {fixtureLesson} from './lesson-test-fixture.mjs';
+import {validateLesson} from './lesson-schema.mjs';
 
 const report=[];
 async function check(name,fn){try{await fn();report.push({name,pass:true})}catch(error){report.push({name,pass:false,error:error.message})}}
@@ -25,6 +27,7 @@ const wav=Buffer.alloc(44);wav.write('RIFF');wav.writeUInt32LE(36,4);wav.write('
 const env={APP_TOKEN:'test-connection-token-at-least-24-characters',DASHSCOPE_API_KEY:'fake-test-key'};
 const server=createServer({env,fetcher:async(url,options)=>{
  calls.push({url:String(url),body:options.body?JSON.parse(options.body):null});
+ if(options.body&&JSON.parse(options.body).response_format)return Response.json({choices:[{message:{content:JSON.stringify(fixtureLesson)}}]});
  if(String(url).includes('chat/completions'))return Response.json({choices:[{message:{content:'变位动词在第二位。'}}]});
  if(String(url).includes('multimodal-generation'))return Response.json({output:{audio:{url:'http://dashscope-result-bj.oss-cn-beijing.aliyuncs.com/test.wav'}}});
  return new Response(wav,{headers:{'Content-Type':'audio/wav'}});
@@ -49,6 +52,14 @@ try{
   assert.ok(calls.some(c=>c.url.startsWith('https://dashscope-result-')));
  });
  await check('Overlong speech rejected before billing',async()=>assert.equal((await post('/api/speech',{language:'de',text:'x'.repeat(601)})).status,400));
+ await check('Next lesson includes review words and learner feedback',async()=>{
+  const r=await post('/api/lesson',{language:'de',index:2,previousTitle:'Previous',words:['frisch'],comfort:'hard',duration:15});assert.equal(r.status,200);assert.equal((await r.json()).lesson.questions[0].answer,1);
+  assert.match(calls.at(-1).body.messages[1].content,/frisch/);assert.match(calls.at(-1).body.messages[0].content,/hard/);
+ });
+ await check('Generated lesson survives backup and rejects markup',()=>{
+  const copy=structuredClone(state);const progress=JSON.parse(copy.data['daily-page-progress']);progress.de={index:2,done:false,lesson:fixtureLesson};copy.data['daily-page-progress']=JSON.stringify(progress);assert.equal(JSON.parse(parseBackup(JSON.stringify(copy)).data['daily-page-progress']).de.lesson.title,fixtureLesson.title);
+  assert.throws(()=>validateLesson({...fixtureLesson,title:'<img src=x>'}));
+ });
 }finally{server.closeAllConnections();await new Promise(resolve=>server.close(resolve))}
 await writeFile('learning-verification.tmp.json',JSON.stringify(report,null,2));
 console.log(JSON.stringify(report,null,2));if(report.some(r=>!r.pass))process.exitCode=1;

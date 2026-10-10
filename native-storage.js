@@ -3,6 +3,8 @@ import {Preferences} from '@capacitor/preferences';
 import {Filesystem, Directory, Encoding} from '@capacitor/filesystem';
 import {Share} from '@capacitor/share';
 import {DATA_KEYS, STATE_KEY, parseBackup, snapshot} from './learning-state.mjs';
+import {validateLesson} from './lesson-schema.mjs';
+window.validateLesson=validateLesson;
 
 const native = Capacitor.isNativePlatform();
 let queue = Promise.resolve();

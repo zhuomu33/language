@@ -5,6 +5,7 @@ const config: CapacitorConfig = {
   appName: '每日一页',
   webDir: 'release',
   ios: {
+    zoomEnabled: false,
     contentInset: 'never',
     scrollEnabled: false
   }

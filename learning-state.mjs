@@ -1,3 +1,4 @@
+import {validateLesson} from './lesson-schema.mjs';
 export const DATA_KEYS = ['daily-page-vocab', 'daily-page-settings', 'daily-page-progress'];
 export const STATE_KEY = 'daily-page-state-v1';
 
@@ -17,6 +18,7 @@ export function validateData(data) {
     const item = progress[lang];
     if (!item || !Number.isSafeInteger(item.index) || item.index < 0 || typeof item.done !== 'boolean') throw new Error('课程进度损坏');
     if (item.completed !== undefined && (!Number.isSafeInteger(item.completed) || item.completed < 0)) throw new Error('完成记录损坏');
+    if(item.lesson) validateLesson(item.lesson);
   }
   return result;
 }
